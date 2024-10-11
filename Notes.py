@@ -1,61 +1,76 @@
 import ttkbootstrap as ttk
-from tkinter import Canvas, Scrollbar, Label, Entry
+from tkinter import Canvas, Scrollbar, Label, Entry, messagebox
+from ttkbootstrap.constants import *
 import tkinter as tk
 
-def delete_bist():
-    pass
+def delete_bist(bist,canvas):
 
-def delete_cist():
-    pass
+    for i in bist:
+        canvas.delete(i)
 
-def list(window, canvas):
-    """Function to read from List.txt and display it."""
+def delete_cist(cist):
+
+    for i in cist:
+        i.destroy()
+
+def populate_data(file_path, frame):
+    """Read data from the file and add it to the scrollable frame."""
+    with open(file_path, 'r') as file:
+        data = file.readlines()
+
+    for i, line in enumerate(data):
+        label = ttk.Label(frame, text=line.strip(), padding=2)
+        label.grid(row=i, column=0, sticky="w")
+
+def old_note(window, canvas, name):
+
+    note_name = name.get()
+
     try:
-        with open("List.txt", "r") as file:
-            data = file.readlines()
+        with open("List.txt","a") as file:
+            file.write(note_name)
 
-        frame = ttk.Frame(canvas)
-        canvas.create_window((0, 0), window=frame, anchor='nw')
+    except Exception as e:
+        print("Error at line 11 : ", e)
 
-        for i, line in enumerate(data):
-            label = ttk.Label(frame, text=line.strip(), padding=5)
-            label.grid(row=i, column=0, sticky="w")
+    Note = ttk.Window(themename = "darkly")
+    Note.title(note_name)
+    Note.geometry("200x200")
+    Note.resizable(False,False)
 
-        # Update canvas scrollregion after populating data
-        frame.update_idletasks()
-        canvas.configure(scrollregion=canvas.bbox("all"))
+    boanvas = Canvas(Note,
+                     width=200,  # Set an appropriate width
+                     height=200)  # Make it taller to allow scrolling
+    boanvas.place(x=0,
+                  y=0,  # Adjust y position to fit within the main canvas
+                  width=200,
+                  height=200)
 
-    except FileNotFoundError:
-        print("File not found!")
+    # Create a scrollbar and link it to the boanvas
+    scrollbar = ttk.Scrollbar(Note, orient=VERTICAL, command=boanvas.yview)
+    scrollbar.place(x=180, y=0, height=200)  # Place the scrollbar next to the boanvas
 
-def new_user(window, bist, name):
-    """Function to create a new user entry and display in scrollable text widget."""
-    root = tk.Toplevel(window)  # Use Toplevel instead of Tk to avoid second mainloop
-    root.geometry('400x300')
+    boanvas.configure(yscrollcommand=scrollbar.set)
 
-    canvas = tk.Canvas(root)
-    canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    # Create a frame inside the boanvas
+    scrollable_frame = ttk.Frame(boanvas)
+    boanvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
 
-    scrollbar = ttk.Scrollbar(root, orient=tk.VERTICAL, command=canvas.yview)
-    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    # Bind configuration events to dynamically adjust the scroll region
+    scrollable_frame.bind('<Configure>', lambda e: boanvas.configure(scrollregion=boanvas.bbox('all')))
 
-    canvas.configure(yscrollcommand=scrollbar.set)
-    canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+    # Populate the scrollable frame with data from a file
+    file_path = "Data/"+note_name+".txt"
+    populate_data(file_path, scrollable_frame)
 
-    frame = ttk.Frame(canvas)
-    canvas.create_window((0, 0), window=frame, anchor='nw')
+    Note.mainloop()
 
-    text_widget = tk.Text(frame, wrap='word', height=10, width=40)
-    text_widget.pack(expand=True, fill=tk.BOTH)
+    try:
+        with open(open_note, "w") as file:
+            data = file.writelines()
 
-    # Insert new user's note name into text_widget
-    text_widget.insert(tk.END, f"New Note: {name.get()}\n")
-    text_widget.config(padx=10, pady=10)
-
-    frame.update_idletasks()
-    canvas.configure(scrollregion=canvas.bbox("all"))
-
-    root.mainloop()
+    except Exception as e:
+        print("Error at line 24 :", e)
 
 def func(window, canvas):
     """Main UI layout for entering a new note."""
@@ -71,54 +86,72 @@ def func(window, canvas):
                     font=('Times New Roman', 13))
 
     style.configure('Entry.TEntry',
-                    foreground='black',
+                    foreground='white',
                     background='#79c2d0',
                     font=('Times New Roman', 13))
 
-    # Welcome message
-    welcome = canvas.create_text(350, 100,
-                                 text='Good to have you',
+    welcome = canvas.create_text(550, 100,
+                                 text='Access Existing Notes',
                                  fill='white',
                                  anchor='center')
 
-    # Ask for new note name
-    ask_name = canvas.create_text(300, 150,
-                                  text='Enter the name you wanna give to this new note',
-                                  fill='white',
-                                  anchor='center')
-
-    # Name label and entry field
-    names = canvas.create_text(250, 200,
-                               text='Name',
-                               fill="white",
-                               anchor='center')
-
-    name = ttk.Entry(window, style='Entry.TEntry')
-    canvas.create_window(350, 200,
+    name = ttk.Entry(window, 
+                     style='Entry.TEntry')
+    canvas.create_window(550, 150,
                          anchor='center',
                          window=name)
 
-    # Button to enter new note
-    enter_button = ttk.Button(window,
-                              text='Done',
-                              command=lambda: new_user(window, bist, name),
-                              style='Buttons.TButton')
-    canvas.create_window(350, 300,
-                         anchor='center',
-                         window=enter_button)
+    guide = canvas.create_text(450, 150,
+                               text="Name",
+                               fill="white",
+                               anchor="center")
 
-    # Button to go back
-    back_button = ttk.Button(window,
-                             text='Back',
-                             command=lambda: func(window),
-                             style='Buttons.TButton')
-    canvas.create_window(350, 350,
+    open_button = ttk.Button(window,
+                        text='Open',
+                        command=lambda: old_note(window,canvas, name),
+                        style='Buttons.TButton')
+    canvas.create_window(600, 200,
                          anchor='center',
-                         window=back_button)
+                         window=open_button)
 
-    # Store elements for deletion if needed
-    bist = [welcome, ask_name, names]
-    cist = [name, enter_button, back_button]
+    create_button = ttk.Button(window,
+                        text='New Note',
+                        command=lambda: new_note(window,canvas, bist, cist, name),
+                        style='Buttons.TButton')
+    canvas.create_window(550, 350,
+                         anchor='center',
+                         window=create_button)
+
+    boanvas = Canvas(window,
+                     width=350,  # Set an appropriate width
+                     height=400)  # Make it taller to allow scrolling
+    boanvas.place(x=10,
+                  y=50,  # Adjust y position to fit within the main canvas
+                  width=350,
+                  height=400)
+
+    # Create a scrollbar and link it to the boanvas
+    scrollbar = ttk.Scrollbar(window, orient=VERTICAL, command=boanvas.yview)
+    scrollbar.place(x=150, y=50, height=400)  # Place the scrollbar next to the boanvas
+
+    boanvas.configure(yscrollcommand=scrollbar.set)
+
+    # Create a frame inside the boanvas
+    scrollable_frame = ttk.Frame(boanvas)
+    boanvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+    # Bind configuration events to dynamically adjust the scroll region
+    scrollable_frame.bind('<Configure>', lambda e: boanvas.configure(scrollregion=boanvas.bbox('all')))
+
+    # Populate the scrollable frame with data from a file
+    file_path = "Data/List.txt" 
+    populate_data(file_path, scrollable_frame)
+
+
+    bist = []
+    cist = []
+
+
 
 def welcome():
     """Main welcome window setup."""
