@@ -1,7 +1,63 @@
 import ttkbootstrap as ttk
-from tkinter import Canvas, Scrollbar, Text, Entry, messagebox
+from tkinter import Canvas, Scrollbar, Text, Entry, messagebox, Toplevel, VERTICAL
 from ttkbootstrap.constants import *
 import tkinter as tk
+import os
+
+def populate_list_slowly(frame, file_list, delay=500):
+    """Populate list of files one by one with a delay between each item."""
+
+    for i, file_name in enumerate(file_list):
+        frame.after(i * delay, lambda file_name=file_name: add_textbox(frame, file_name))
+
+def add_textbox(frame, file_name):
+    """Add a text widget displaying a file name."""
+    text_box = ttk.Label(frame, text=file_name, style='Label.TLabel')
+    text_box.pack(anchor='w', padx=5, pady=5)
+
+def show_file_list_slowly(window, file_path, cist):
+    """Simulate slow file loading effect when the button is pressed."""
+
+    delete_cist(cist)
+
+    boanvas = Canvas(window, 
+                     width=200, 
+                     height=400)
+    boanvas.place(x=10, y=50, 
+                  width=200, 
+                  height=400)
+
+    scrollable_frame = ttk.Frame(boanvas)
+    boanvas.create_window((0, 0), 
+                          window=scrollable_frame, 
+                          anchor="nw")
+
+    scrollbar = ttk.Scrollbar(window, 
+                              orient=VERTICAL, 
+                              command=boanvas.yview)
+    scrollbar.place(x=200, 
+                    y=50, 
+                    height=400)
+    boanvas.configure(yscrollcommand=scrollbar.set)
+
+    scrollable_frame.bind('<Configure>', 
+                          lambda e: boanvas.configure(scrollregion=boanvas.bbox('all')))
+
+    try:
+        with open(file_path, 'r') as file:
+            data = file.read()
+    except FileNotFoundError:
+        data = ""  # Handle file not found for simplicity
+
+    file_list = data.split("\n")  # Assuming each line contains a file name
+    delay_per_file = 100  # Delay per file in milliseconds (e.g., 100ms per file)
+    total_time = 5000  # Total time for the whole list to appear (5 seconds)
+    
+    file_count = len(file_list)
+    if file_count > 0:
+        delay_per_file = total_time // file_count  # Adjust delay based on file count
+
+    populate_list_slowly(scrollable_frame, file_list, delay=delay_per_file)
 
 def delete_bist(bist, canvas):
 
@@ -14,22 +70,6 @@ def delete_cist(cist):
         i.destroy()
 
 def populate_data(file_path, frame, state):
-
-    style = ttk.Style()
-
-    style.configure('Buttons.TButton',
-                    foreground='white',
-                    background='#3f3752',
-                    borderwidth=2,
-                    relief='raised',
-                    highlightcolor='#dbd8e3',
-                    bordercolor='#dbd8e3',
-                    font=('Times New Roman', 13))
-
-    style.configure('Entry.TEntry',
-                    foreground='white',
-                    background='#79c2d0',
-                    font=('Times New Roman', 13))
     
     with open(file_path, 'r') as file:
         data = file.read() 
@@ -103,16 +143,15 @@ def new_note(window, canvas):
 
     names = boanvas.create_text(100,150,
                                 text='name',
-                                fille='white',
+                                fill='white',
                                 anchor='center')
 
-
-def old_note(window, canvas, name):
+def old_note(name):
     
     note_name = name.get()
 
+    # Configure style for buttons and entry
     style = ttk.Style()
-
     style.configure('Buttons.TButton',
                     foreground='white',
                     background='#3f3752',
@@ -128,57 +167,114 @@ def old_note(window, canvas, name):
                     font=('Times New Roman', 13))
 
     try:
-        with open("List.txt", "a") as file:
+        # Writing the note name to the list
+        with open("Data/List.txt", "a") as file:
             file.write(note_name + "\n")
-
     except Exception as e:
-        print("Error at line 11 : ", e)
+        print("Error while writing to the list:", e)
 
-    Note = ttk.Window(themename="darkly")
+    # Creating a new window using ttkbootstrap's theming system
+    Note = Toplevel()
     Note.title(note_name)
     Note.geometry("400x300")
     Note.resizable(False, False)
 
-    boanvas = Canvas(Note, 
-                     width=400, 
-                     height=300)
-    boanvas.place(x=0, 
-                  y=0, 
-                  width=400, 
-                  height=300)
+    canvas = Canvas(Note, 
+                    width=400, 
+                    height=300)
+    canvas.place(x=0, 
+                 y=0, 
+                 width=400, 
+                 height=300)
 
     scrollbar = ttk.Scrollbar(Note, 
                               orient=VERTICAL, 
-                              command=boanvas.yview)
+                              command=canvas.yview)
+
     scrollbar.place(x=380, 
                     y=0, 
                     height=300)
-    boanvas.configure(yscrollcommand=scrollbar.set)
 
-    scrollable_frame = ttk.Frame(boanvas)
-    boanvas.create_window((0, 0),
-                           window=scrollable_frame, 
-                           anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
 
-    scrollable_frame.bind('<Configure>',
-                          lambda e: boanvas.configure(scrollregion=boanvas.bbox('all')))
+    scrollable_frame = ttk.Frame(canvas)
+    canvas.create_window((0, 0),
+                          window=scrollable_frame, 
+                          anchor="nw")
+
+    scrollable_frame.bind('<Configure>', 
+                          lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
 
     # Populate the scrollable frame with editable text widgets from the file
-    file_path = "Data/" + note_name + ".txt"
+    file_path = f"Data/{note_name}.txt"
     state = "normal"
     populate_data(file_path, scrollable_frame, state)
 
     # Save button to save edited note
     save_button = ttk.Button(Note, 
                              text="Save", 
+                             style="Buttons.TButton", 
                              command=lambda: save_note(file_path, scrollable_frame))
-    save_button.place(x=170, 
-                      y=270)
+    save_button.place(x=170, y=270)
 
     Note.mainloop()
 
+def animate_text(window, canvas, i=0):
+    """Animates the text and entry field horizontally."""
+    
+    if i >= 120:
+        return  # Stop the animation when it reaches 450 pixels
+
+    # Clear previous widgets
+    canvas.delete("all")
+
+    welcome = canvas.create_text(350+i, 100,
+                                     text='Access Existing Notes',
+                                     fill='white',
+                                     anchor='center')
+
+    name = ttk.Entry(window, 
+                         style='Entry.TEntry')
+    canvas.create_window(350+i, 150,
+                             anchor='center',
+                             window=name)
+
+    guide = canvas.create_text(250+i, 150, 
+                                   text="Name", 
+                                   fill="white", 
+                                   anchor="center")
+
+    pen_button = ttk.Button(window, 
+                                 text='Open', 
+                                 command=lambda: old_note(name), 
+                                 style='Buttons.TButton')
+    canvas.create_window(400+i, 200, 
+                             anchor='center', 
+                             window=pen_button)
+
+    open_button = ttk.Button(window, 
+                                 text='Show List', 
+                                 style='Buttons.TButton',
+                                 command=lambda: show_file_list_slowly(window, 'Data/List.txt', cist))
+    canvas.create_window(300+i, 
+                             200, 
+                             anchor='center', 
+                             window=open_button)
+
+    create_button = ttk.Button(window, 
+                                   text='New Note', 
+                                   command=lambda: new_note(window, canvas), 
+                                   style='Buttons.TButton')
+    canvas.create_window(350+i, 350, 
+                             anchor='center', 
+                             window=create_button)
+
+    # Continue the animation by scheduling the next frame
+    window.after(5, animate_text, window, canvas, i + 1)
+
 def func(window, canvas):
     """Main UI layout for entering a new note."""
+
     style = ttk.Style()
 
     style.configure('Buttons.TButton',
@@ -195,71 +291,58 @@ def func(window, canvas):
                     background='#79c2d0',
                     font=('Times New Roman', 13))
 
-    welcome = canvas.create_text(450, 100,
-                                 text='Access Existing Notes',
-                                 fill='white',
-                                 anchor='center')
+    welcome = canvas.create_text(350, 100,
+                                     text='Access Existing Notes',
+                                     fill='white',
+                                     anchor='center')
 
     name = ttk.Entry(window, 
-                     style='Entry.TEntry')
-    canvas.create_window(450, 150,
-                         anchor='center',
-                         window=name)
+                         style='Entry.TEntry')
+    canvas.create_window(350, 150,
+                             anchor='center',
+                             window=name)
 
-    guide = canvas.create_text(350, 150, 
-                               text="Name", 
-                               fill="white", 
-                               anchor="center")
+    guide = canvas.create_text(250, 150, 
+                                   text="Name", 
+                                   fill="white", 
+                                   anchor="center")
+
+    pen_button = ttk.Button(window, 
+                                 text='Open', 
+                                 command=lambda: old_note(name), 
+                                 style='Buttons.TButton')
+    canvas.create_window(400, 200, 
+                             anchor='center', 
+                             window=pen_button)
 
     open_button = ttk.Button(window, 
-                             text='Open', 
-                             command=lambda: old_note(window, canvas, name), 
-                             style='Buttons.TButton')
-    canvas.create_window(500, 200, 
+                             text='Show List', 
+                             style='Buttons.TButton',
+                             command=lambda: 
+                             (animate_text(window, canvas), 
+                             show_file_list_slowly(window, 'Data/List.txt', cist)))
+    canvas.create_window(300, 
+                         200, 
                          anchor='center', 
                          window=open_button)
 
     create_button = ttk.Button(window, 
-                               text='New Note', 
-                               command=lambda: new_note(window, canvas), 
-                               style='Buttons.TButton')
-    canvas.create_window(450, 350, 
-                         anchor='center', 
-                         window=create_button)
+                                   text='New Note', 
+                                   command=lambda: new_note(window, canvas), 
+                                   style='Buttons.TButton')
+    canvas.create_window(350, 350, 
+                             anchor='center', 
+                             window=create_button)
 
-    boanvas = Canvas(window, 
-                     width=200, 
-                     height=400)
-    boanvas.place(x=10, y=50, 
-                  width=200, 
-                  height=400)
+    cist = [open_button]
 
-    scrollbar = ttk.Scrollbar(window, 
-                              orient=VERTICAL, 
-                              command=boanvas.yview)
-    scrollbar.place(x=200, 
-                    y=50, 
-                    height=400)
-    boanvas.configure(yscrollcommand=scrollbar.set)
-
-    scrollable_frame = ttk.Frame(boanvas)
-    boanvas.create_window((0, 0), 
-                          window=scrollable_frame, 
-                          anchor="nw")
-
-    scrollable_frame.bind('<Configure>', 
-                          lambda e: boanvas.configure(scrollregion=boanvas.bbox('all')))
-
-    file_path = "Data/List.txt"
-    state = "disabled"
-    populate_data(file_path, scrollable_frame, state)
-
+            
 def welcome():
     """Main welcome window setup."""
     window = ttk.Window(themename="darkly")
     window.title("Note")
     window.geometry('700x500')
-    window.resizable(False,False)
+    window.resizable(False, False)
 
     canvas = Canvas(window, 
                     width=700, 
