@@ -44,7 +44,7 @@ def show_file_list_slowly(window, file_path, cist):
                           lambda e: boanvas.configure(scrollregion=boanvas.bbox('all')))
 
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r') as file: 
             data = file.read()
     except FileNotFoundError:
         data = ""  # Handle file not found for simplicity

@@ -1,5 +1,5 @@
 import ttkbootstrap as ttk
-from tkinter import Canvas, Scrollbar, Text, Entry, messagebox, Toplevel, VERTICAL
+from tkinter import Canvas, Scrollbar, Text, Entry, messagebox, Toplevel, VERTICAL, PhotoImage
 from ttkbootstrap.constants import *
 import tkinter as tk
 import os
@@ -26,6 +26,12 @@ def show_file_list_slowly(window, file_path, cist):
     boanvas.place(x=10, y=50, 
                   width=200, 
                   height=400)
+
+    image = PhotoImage(file="overer.png")
+    boanvas.create_image(0, 
+                         0, 
+                         anchor="nw", 
+                         image=image)
 
     scrollable_frame = ttk.Frame(boanvas)
     boanvas.create_window((0, 0), 
@@ -219,14 +225,14 @@ def old_note(name):
 
     Note.mainloop()
 
-def animate_text(window, canvas, i=0):
+def animate_text(window, canvas, cist, bist, i=0):
     """Animates the text and entry field horizontally."""
     
     if i >= 120:
         return  # Stop the animation when it reaches 450 pixels
 
-    # Clear previous widgets
-    canvas.delete("all")
+    delete_cist(cist)
+    delete_bist(bist,canvas)
 
     welcome = canvas.create_text(350+i, 100,
                                      text='Access Existing Notes',
@@ -269,8 +275,11 @@ def animate_text(window, canvas, i=0):
                              anchor='center', 
                              window=create_button)
 
+    cist = [open_button, name, pen_button, create_button]
+    bist = [welcome, guide]
+
     # Continue the animation by scheduling the next frame
-    window.after(5, animate_text, window, canvas, i + 1)
+    window.after(5, animate_text, window, canvas, cist, bist, i + 1)
 
 def func(window, canvas):
     """Main UI layout for entering a new note."""
@@ -319,7 +328,7 @@ def func(window, canvas):
                              text='Show List', 
                              style='Buttons.TButton',
                              command=lambda: 
-                             (animate_text(window, canvas), 
+                             (animate_text(window, canvas, cist, bist), 
                              show_file_list_slowly(window, 'Data/List.txt', cist)))
     canvas.create_window(300, 
                          200, 
@@ -334,7 +343,14 @@ def func(window, canvas):
                              anchor='center', 
                              window=create_button)
 
-    cist = [open_button]
+    bg_image = PhotoImage(file="back.png")
+    canvas.create_image(0, 
+                        0, 
+                        anchor="nw", 
+                        image=bg_image)
+
+    cist = [open_button, name, pen_button, create_button]
+    bist = [welcome, guide]
 
             
 def welcome():
@@ -351,6 +367,12 @@ def welcome():
                  y=0, 
                  relwidth=1.5, 
                  relheight=1.5)
+
+    bg_image = PhotoImage(file="back.png")
+    canvas.create_image(0, 
+                        0, 
+                        anchor="nw", 
+                        image=bg_image)
 
     func(window, canvas)
 
