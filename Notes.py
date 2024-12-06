@@ -1,5 +1,5 @@
 import ttkbootstrap as ttk
-from tkinter import Canvas, Scrollbar, Text, Entry, messagebox, Toplevel, VERTICAL
+from tkinter import Canvas, Scrollbar, Text, Entry, messagebox, Toplevel, VERTICAL, PhotoImage
 from ttkbootstrap.constants import *
 import tkinter as tk
 import os
@@ -18,7 +18,7 @@ def add_textbox(frame, file_name):
 def show_file_list_slowly(window, file_path, cist):
     """Simulate slow file loading effect when the button is pressed."""
 
-    delete_cist(cist)
+    delete_window(cist)
 
     boanvas = Canvas(window, 
                      width=200, 
@@ -40,11 +40,17 @@ def show_file_list_slowly(window, file_path, cist):
                     height=400)
     boanvas.configure(yscrollcommand=scrollbar.set)
 
+    boanvas.bg = PhotoImage(file="image/over.png")
+    boanvas.create_image(0, 
+                         0, 
+                         anchor="nw", 
+                         image=boanvas.bg)
+
     scrollable_frame.bind('<Configure>', 
                           lambda e: boanvas.configure(scrollregion=boanvas.bbox('all')))
 
     try:
-        with open(file_path, 'r') as file: 
+        with open(file_path, 'r') as file:
             data = file.read()
     except FileNotFoundError:
         data = ""  # Handle file not found for simplicity
@@ -59,22 +65,25 @@ def show_file_list_slowly(window, file_path, cist):
 
     populate_list_slowly(scrollable_frame, file_list, delay=delay_per_file)
 
-def delete_bist(bist, canvas):
+def delete_canvas(bist, canvas):
 
     for i in bist:
         canvas.delete(i)
 
-def delete_cist(cist):
+def delete_window(cist):
    
     for i in cist:
         i.destroy()
 
 def populate_data(file_path, frame, state):
-    
-    with open(file_path, 'r') as file:
-        data = file.read() 
 
-    paragraphs = data.split("\n\n")  # Split the content into paragraphs using double newlines
+    try:
+        with open(file_path, 'r') as file:
+            data = file.read() 
+
+        paragraphs = data.split("\n\n")  # Split the content into paragraphs using double newlines
+    except FileNotFoundError:
+        pass
 
     for i, paragraph in enumerate(paragraphs):
         
@@ -93,6 +102,19 @@ def populate_data(file_path, frame, state):
         # Optional: Disable Text widget initially to prevent editing, can be enabled on demand
         text_box.config(state=state)  # Or set to "disabled" if you want read-only initially
 
+def create_file(file):
+
+    name = file.get()
+
+    with open("Data/List.txt","a") as f:
+        f.write(name+"\n")
+
+    new = "Data/"+name+".txt"
+    with open(new,"w") as f:
+        pass
+
+    old_note(new,file,2)
+    
 def save_note(file_path, frame):
     
     all_text = []
@@ -104,51 +126,7 @@ def save_note(file_path, frame):
     with open(file_path, 'w') as file:
         file.writelines(all_text)  # Save all content back to the file
 
-def new_note(window, canvas):
-
-    style = ttk.Style()
-
-    style.configure('Buttons.TButton',
-                    foreground='white',
-                    background='#3f3752',
-                    borderwidth=2,
-                    relief='raised',
-                    highlightcolor='#dbd8e3',
-                    bordercolor='#dbd8e3',
-                    font=('Times New Roman', 13))
-
-    style.configure('Entry.TEntry',
-                    foreground='white',
-                    background='#79c2d0',
-                    font=('Times New Roman', 13))
-
-    Note = ttk.Window(themename="darkly")
-    Note.title("Name")
-    Note.geometry("400x300")
-    Note.resizable(False, False)
-
-    boanvas = Canvas(Note, 
-                     width=400, 
-                     height=300)
-    boanvas.place(x=0, 
-                  y=0, 
-                  width=400, 
-                  height=300)
-
-    name = ttk.Entry(Note,
-                     style = "Entry.TEntry")
-    boanvas.create_window(200,150,
-                         anchor='center',
-                         window=name)
-
-    names = boanvas.create_text(100,150,
-                                text='name',
-                                fill='white',
-                                anchor='center')
-
-def old_note(name):
-    
-    note_name = name.get()
+def old_note(name,file,num):
 
     # Configure style for buttons and entry
     style = ttk.Style()
@@ -166,58 +144,90 @@ def old_note(name):
                     background='#79c2d0',
                     font=('Times New Roman', 13))
 
-    try:
-        # Writing the note name to the list
-        with open("Data/List.txt", "a") as file:
-            file.write(note_name + "\n")
-    except Exception as e:
-        print("Error while writing to the list:", e)
+    note_name = name[5:-4]
 
-    # Creating a new window using ttkbootstrap's theming system
-    Note = Toplevel()
-    Note.title(note_name)
-    Note.geometry("400x300")
-    Note.resizable(False, False)
+    with open("Data/List.txt","r")as f:
+        lists = f.read()
+        names = lists.split('\n')
 
-    canvas = Canvas(Note, 
-                    width=400, 
-                    height=300)
-    canvas.place(x=0, 
-                 y=0, 
-                 width=400, 
-                 height=300)
+    if note_name in names or num == 2:
+        # Creating a new window using ttkbootstrap's theming system
+        Note = Toplevel()
+        Note.title(note_name)
+        Note.geometry("400x300")
+        Note.resizable(False, False)
 
-    scrollbar = ttk.Scrollbar(Note, 
-                              orient=VERTICAL, 
-                              command=canvas.yview)
+        canvas = Canvas(Note, 
+                        width=400, 
+                        height=300)
+        canvas.place(x=0, 
+                     y=0, 
+                     width=400, 
+                     height=300)
 
-    scrollbar.place(x=380, 
-                    y=0, 
-                    height=300)
+        scrollbar = ttk.Scrollbar(Note, 
+                                  orient=VERTICAL, 
+                                  command=canvas.yview)
 
-    canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.place(x=380, 
+                        y=0, 
+                        height=300)
 
-    scrollable_frame = ttk.Frame(canvas)
-    canvas.create_window((0, 0),
-                          window=scrollable_frame, 
-                          anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
 
-    scrollable_frame.bind('<Configure>', 
-                          lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        scrollable_frame = ttk.Frame(canvas)
+        canvas.create_window((0, 0),
+                              window=scrollable_frame, 
+                              anchor="nw")
 
-    # Populate the scrollable frame with editable text widgets from the file
-    file_path = f"Data/{note_name}.txt"
-    state = "normal"
-    populate_data(file_path, scrollable_frame, state)
+        scrollable_frame.bind('<Configure>', 
+                              lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
 
-    # Save button to save edited note
-    save_button = ttk.Button(Note, 
-                             text="Save", 
-                             style="Buttons.TButton", 
-                             command=lambda: save_note(file_path, scrollable_frame))
-    save_button.place(x=170, y=270)
+        # Populate the scrollable frame with editable text widgets from the file
+        file_path = "Data/"+note_name +".txt"
+        state = "normal"
+        populate_data(file_path, scrollable_frame, state)   
+        # Save button to save edited note
+        save_button = ttk.Button(Note, 
+                                 text="Save", 
+                                 style="Buttons.TButton", 
+                                 command=lambda: save_note(file_path, scrollable_frame))
+        save_button.place(x=170, y=270)
 
-    Note.mainloop()
+        Note.mainloop()
+
+    else :
+        file.delete(0, END)
+        # Insert new data into the Entry widget
+        file.insert(0, "Not Found")
+
+def NEW_Note(window, canvas, button, i):
+
+    button.destroy()
+
+    a=0
+
+    if i == 2:
+        a = 120
+
+    name = canvas.create_text(250+a, 350,
+                              text='New Name',
+                              fill='white',
+                              anchor='center')
+
+    enter = ttk.Entry(window, 
+                      style='Entry.TEntry')
+    canvas.create_window(350+a, 350,
+                         anchor='center',
+                         window=enter)
+
+    proceed = ttk.Button(window, 
+                         text='Create', 
+                         command=lambda: create_file(enter), 
+                         style='Buttons.TButton')
+    canvas.create_window(400+a, 400, 
+                         anchor='center', 
+                         window=proceed)
 
 def animate_text(window, canvas, i=0):
     """Animates the text and entry field horizontally."""
@@ -227,6 +237,12 @@ def animate_text(window, canvas, i=0):
 
     # Clear previous widgets
     canvas.delete("all")
+
+    canvas.bg_image = PhotoImage(file="image/back.png")
+    canvas.create_image(-3,
+                        -3,
+                        anchor="nw",
+                        image=canvas.bg_image)
 
     welcome = canvas.create_text(350+i, 100,
                                      text='Access Existing Notes',
@@ -246,7 +262,7 @@ def animate_text(window, canvas, i=0):
 
     pen_button = ttk.Button(window, 
                                  text='Open', 
-                                 command=lambda: old_note(name), 
+                                 command=lambda:  get_name(name), 
                                  style='Buttons.TButton')
     canvas.create_window(400+i, 200, 
                              anchor='center', 
@@ -263,14 +279,26 @@ def animate_text(window, canvas, i=0):
 
     create_button = ttk.Button(window, 
                                    text='New Note', 
-                                   command=lambda: new_note(window, canvas), 
+                                   command=lambda: NEW_Note(window, canvas, create_button,2),
                                    style='Buttons.TButton')
     canvas.create_window(350+i, 350, 
                              anchor='center', 
                              window=create_button)
 
+    cist = []
     # Continue the animation by scheduling the next frame
     window.after(5, animate_text, window, canvas, i + 1)
+
+def get_name(name):
+    namer = name.get()
+    if namer == "":
+        name.delete(0, END)
+        # Insert new data into the Entry widget
+        name.insert(0, "Not Found")
+
+    else:
+        names = "Data/"+namer+".txt"
+        old_note(names,name,1)
 
 def func(window, canvas):
     """Main UI layout for entering a new note."""
@@ -309,7 +337,7 @@ def func(window, canvas):
 
     pen_button = ttk.Button(window, 
                                  text='Open', 
-                                 command=lambda: old_note(name), 
+                                 command=lambda: get_name(name), 
                                  style='Buttons.TButton')
     canvas.create_window(400, 200, 
                              anchor='center', 
@@ -328,14 +356,13 @@ def func(window, canvas):
 
     create_button = ttk.Button(window, 
                                    text='New Note', 
-                                   command=lambda: new_note(window, canvas), 
+                                   command=lambda: NEW_Note(window, canvas, create_button, 1), 
                                    style='Buttons.TButton')
     canvas.create_window(350, 350, 
                              anchor='center', 
                              window=create_button)
 
-    cist = [open_button]
-
+    cist = []
             
 def welcome():
     """Main welcome window setup."""
@@ -351,6 +378,12 @@ def welcome():
                  y=0, 
                  relwidth=1.5, 
                  relheight=1.5)
+
+    bg_image = PhotoImage(file="image/back.png")
+    canvas.create_image(-3,
+                        -3,
+                        anchor="nw",
+                        image=bg_image)
 
     func(window, canvas)
 
